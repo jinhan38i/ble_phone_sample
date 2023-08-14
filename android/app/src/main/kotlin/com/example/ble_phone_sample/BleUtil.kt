@@ -285,9 +285,8 @@ object BleUtil : EventChannel.StreamHandler {
     }
 
     fun connectToDevice(context: Context, device: BluetoothDevice) {
-        Log.d(TAG, "connectToDevice: bluetoothAdapter : $bluetoothAdapter")
         bluetoothAdapter?.getRemoteDevice(device.address)?.let {
-            it.connectGatt(context, false, bluetoothGattCallback)
+            it.connectGatt(context, false, bluetoothGattCallback, BluetoothDevice.TRANSPORT_LE)
         }
     }
 

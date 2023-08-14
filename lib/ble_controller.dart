@@ -54,7 +54,6 @@ class BleController with ChangeNotifier {
     AndroidMethodChannel().bleScan();
   }
 
-
   /// 스캔 시작
   void startBackgroundScan() {
     AndroidMethodChannel().bleBackgroundScan();
@@ -75,7 +74,7 @@ class BleController with ChangeNotifier {
     }
   }
 
-  void writeData(String value){
+  void writeData(String value) {
     AndroidMethodChannel().bleWriteData(value);
     dataList.add(value);
     notifyListeners();
@@ -103,7 +102,6 @@ class BleController with ChangeNotifier {
           notifyListeners();
           break;
         case "notification":
-
           String data = json["data"].toString();
 
           dataList.add(data);
@@ -127,7 +125,15 @@ class BleController with ChangeNotifier {
 
     scanDevice.clear();
     scanDevice.addAll(list);
-    print('scanDevice : $scanDevice');
+    if (scanDevice.isNotEmpty) {
+      for (var device in scanDevice) {
+        if (device.name.toLowerCase() == "ihp-w") {
+          connect(list[0]);
+          stopScan();
+          break;
+        }
+      }
+    }
     notifyListeners();
   }
 }
