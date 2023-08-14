@@ -54,6 +54,12 @@ class BleController with ChangeNotifier {
     AndroidMethodChannel().bleScan();
   }
 
+
+  /// 스캔 시작
+  void startBackgroundScan() {
+    AndroidMethodChannel().bleBackgroundScan();
+  }
+
   /// 스캔 중지
   void stopScan() => AndroidMethodChannel().bleScanStop();
 

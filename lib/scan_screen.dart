@@ -1,3 +1,4 @@
+import 'package:ble_phone_sample/android_method_channel.dart';
 import 'package:ble_phone_sample/ble_controller.dart';
 import 'package:flutter/material.dart';
 
@@ -15,6 +16,7 @@ class _ScanScreenState extends State<ScanScreen> {
 
   @override
   void initState() {
+    // AndroidMethodChannel().cpuOn();
     bleController.scanDevice.clear();
     listener = () {
       if (mounted) {
@@ -41,12 +43,24 @@ class _ScanScreenState extends State<ScanScreen> {
         children: [
           ElevatedButton(
               onPressed: () {
-                bleController.init();
+                setState(() {});
               },
-              child: const Text("초기화")),
+              child: Text("화면 갱신")),
           ElevatedButton(
               onPressed: () {
-                bleController.startScan();
+                bleController.init();
+              },
+              child: const Text("BLE 초기화")),
+          ElevatedButton(
+              onPressed: () {
+                print('스캔 클릭');
+                Future.delayed(
+                  Duration(seconds: 2),
+                  () {
+                    print('스캔 시작');
+                    bleController.startScan();
+                  },
+                );
               },
               child: const Text("스캔")),
           ElevatedButton(
