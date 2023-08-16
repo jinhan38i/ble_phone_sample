@@ -156,6 +156,7 @@ object BleUtil : EventChannel.StreamHandler {
         bluetoothAdapter?.bluetoothLeScanner?.stopScan(leScanCallback)
     }
 
+
     /**
      * gatt 연결 상태 콜백
      */
@@ -176,10 +177,8 @@ object BleUtil : EventChannel.StreamHandler {
                     gatt?.discoverServices()
                 }
 
-                // connectedGatt?.disconnect() 호출 성공하면 진입
-                // 해제한 정보는 gatt에 있다.
+                // 연결이 끊기거나 connectedGatt?.disconnect() 호출하면 진입
                 BluetoothProfile.STATE_DISCONNECTED -> {
-                    // 채팅인 경우
                     if (gatt == connectedGatt) {
 //                        connectedGatt = null
 //                        connectedChar = null
@@ -309,7 +308,7 @@ object BleUtil : EventChannel.StreamHandler {
 
     fun connectToDevice(context: Context, device: BluetoothDevice) {
         bluetoothAdapter?.getRemoteDevice(device.address)?.let {
-            it.connectGatt(context, false, bluetoothGattCallback, BluetoothDevice.TRANSPORT_LE)
+            it.connectGatt(context, true, bluetoothGattCallback, BluetoothDevice.TRANSPORT_LE)
         }
     }
 
