@@ -7,7 +7,6 @@ import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
-import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.bluetooth.le.ScanCallback
@@ -24,9 +23,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.MutableLiveData
 import com.google.gson.Gson
 import io.flutter.plugin.common.EventChannel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import java.nio.charset.StandardCharsets
 import java.util.UUID
 
@@ -156,6 +152,7 @@ object BleUtil : EventChannel.StreamHandler {
         bluetoothAdapter?.bluetoothLeScanner?.stopScan(leScanCallback)
     }
 
+    var count = 0
 
     /**
      * gatt 연결 상태 콜백
@@ -177,8 +174,27 @@ object BleUtil : EventChannel.StreamHandler {
                     gatt?.discoverServices()
                 }
 
-                // 연결이 끊기거나 connectedGatt?.disconnect() 호출하면 진입
+                // connectedGatt?.disconnect() 호출 성공하면 진입
+                // 해제한 정보는 gatt에 있다.
                 BluetoothProfile.STATE_DISCONNECTED -> {
+                    if (gatt != null) {
+                        if (status == 133 && count == 0) {
+                            count++
+                            Log.d(TAG, "onConnectionStateChange: 재호출 $count")
+                            gatt.device.connectGatt(
+                                mainActivity,
+                                true,
+                                this,
+                                BluetoothDevice.TRANSPORT_LE
+                            )
+
+//                            gatt.connect
+//                            gatt(
+//                                mainActivity, true,
+//                                bluetoothGattCallback, BluetoothDevice.TRANSPORT_LE)
+                        }
+                    }
+                    // 채팅인 경우
                     if (gatt == connectedGatt) {
 //                        connectedGatt = null
 //                        connectedChar = null
@@ -260,10 +276,6 @@ object BleUtil : EventChannel.StreamHandler {
             gatt: BluetoothGatt?,
             characteristic: BluetoothGattCharacteristic?
         ) {
-            Log.d(
-                TAG,
-                "onCharacteristicChanged() called with: gatt = $gatt, characteristic = $characteristic"
-            )
             if (gatt != null && characteristic != null) {
                 onCharacteristicChanged(gatt, characteristic, characteristic.value)
             }
@@ -271,10 +283,6 @@ object BleUtil : EventChannel.StreamHandler {
 
         override fun onReadRemoteRssi(gatt: BluetoothGatt?, rssi: Int, status: Int) {
             super.onReadRemoteRssi(gatt, rssi, status)
-            Log.d(
-                TAG,
-                "onReadRemoteRssi() called with: gatt = $gatt, rssi = $rssi, status = $status"
-            )
         }
 
         /**
@@ -285,8 +293,6 @@ object BleUtil : EventChannel.StreamHandler {
             characteristic: BluetoothGattCharacteristic,
             value: ByteArray
         ) {
-            Log.d(TAG, "onCharacteristicChanged: value : $value")
-
             val message = String(value, StandardCharsets.UTF_8)
             val response = mapOf("type" to "notification", "data" to message)
             callEventSink(response)
@@ -295,21 +301,11 @@ object BleUtil : EventChannel.StreamHandler {
             }
         }
 
-        override fun onServiceChanged(gatt: BluetoothGatt) {
-            super.onServiceChanged(gatt)
-            Log.d(TAG, "onServiceChanged() called with: gatt = $gatt")
-            Log.d(TAG, "onServiceChanged readRemoteRssi : ${gatt.readRemoteRssi()}")
-            Log.d(TAG, "onServiceChanged services: ${gatt.services}")
-            Log.d(TAG, "onServiceChanged device: ${gatt.device}")
-            Log.d(TAG, "onServiceChanged readPhy: ${gatt.readPhy()}")
-            Log.d(TAG, "onServiceChanged connect: ${gatt.connect()}")
-        }
     }
 
     fun connectToDevice(context: Context, device: BluetoothDevice) {
-        bluetoothAdapter?.getRemoteDevice(device.address)?.let {
-            it.connectGatt(context, true, bluetoothGattCallback, BluetoothDevice.TRANSPORT_LE)
-        }
+        bluetoothAdapter?.getRemoteDevice(device.address)
+            ?.connectGatt(context, false, bluetoothGattCallback, BluetoothDevice.TRANSPORT_LE)
     }
 
 
