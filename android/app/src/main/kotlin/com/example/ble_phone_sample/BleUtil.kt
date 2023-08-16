@@ -34,24 +34,7 @@ import java.util.UUID
 @SuppressLint("MissingPermission", "NewApi")
 object BleUtil : EventChannel.StreamHandler {
 
-    interface Listener {
-        fun scannedDevice(device: ScanResult)
-        fun bondedDevice(bondedDevice: BluetoothDevice)
-        fun stopScan()
-        fun connect(address: String)
-        fun disConnect(address: String)
-        fun sendEvent(message: String)
-        fun didConnect(bleDevice: BleDevice)
-        fun didPhoneConnect(bleDevice: BleDevice)
-        fun disConnectPhone()
-        fun didDisconnect(address: String?)
-        fun readMessage(data: ByteArray, address: String)
-
-    }
-
     private const val TAG = "BleUtil"
-    var listener: Listener? = null
-
     var isConnected = MutableLiveData(false)
     var connectedGatt: BluetoothGatt? = null
     var connectedChar: BluetoothGattCharacteristic? = null
@@ -72,7 +55,7 @@ object BleUtil : EventChannel.StreamHandler {
      * https://developer.android.com/reference/android/bluetooth/le/BluetoothLeScanner#startScan(android.bluetooth.le.ScanCallback)
      * sleep 모드에서 scan을 하기 위해서는 scanFilter에 service를 추가해야 한다.
      */
-    fun scanStart(context: Context) {
+    fun scanStart(context: Context, needTimer: Boolean) {
         scanList.clear()
         val bluetoothManager =
             context.getSystemService(AppCompatActivity.BLUETOOTH_SERVICE) as BluetoothManager
@@ -93,23 +76,28 @@ object BleUtil : EventChannel.StreamHandler {
 //                SCAN_MODE_LOW_LATENCY - 가장 높은 듀티 사이클을 사용하여 스캔합니다. 애플리케이션이 포그라운드에서 실행 중일 때만 이 모드를 사용하는 것이 좋습니다.
 //                SCAN_MODE_OPPORTUNISTIC - 특별한 Bluetooth LE 스캔 모드입니다. 이 스캔 모드를 사용하는 애플리케이션은 BLE 스캔 자체를 시작하지 않고 수동적으로 다른 스캔 결과를 수신합니다.
                 // TODO:: 스캔 텀을 백그라운드일 때랑 최초랑 다르게 가야한다.
-                val settings =
-                    ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_POWER).build()
+//                val settings =
+//                    ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_POWER).build()
+                val settings = ScanSettings.Builder()
+                if (needTimer) {
+                    settings.setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                } else {
+                    settings.setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
+                }
+
                 bluetoothAdapter?.bluetoothLeScanner?.startScan(
                     list,
-                    settings,
+                    settings.build(),
                     leScanCallback
                 )
-                Handler(Looper.getMainLooper()).postDelayed({
-                    stopBleScan()
-                }, scanLimitTime)
+                if (needTimer) {
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        stopBleScan()
+                    }, scanLimitTime)
+                }
             }
         }
 
-    }
-
-    fun scanStop() {
-        stopBleScan()
     }
 
     /**
@@ -163,10 +151,9 @@ object BleUtil : EventChannel.StreamHandler {
         return bluetoothManager.adapter.isEnabled
     }
 
-    private fun stopBleScan() {
+    fun stopBleScan() {
         isScanning.postValue(false)
         bluetoothAdapter?.bluetoothLeScanner?.stopScan(leScanCallback)
-        listener?.stopScan()
     }
 
     /**
@@ -194,14 +181,23 @@ object BleUtil : EventChannel.StreamHandler {
                 BluetoothProfile.STATE_DISCONNECTED -> {
                     // 채팅인 경우
                     if (gatt == connectedGatt) {
-                        connectedGatt = null
-                        connectedChar = null
-                        isConnected.postValue(false)
-                        val response = mapOf(
-                            "type" to "disconnect",
-                            "data" to "success"
-                        )
-                        callEventSink(response)
+//                        connectedGatt = null
+//                        connectedChar = null
+                        // 페리퍼럴에서 앱을 종료시켜서 끊어질 경우 status 133으로 들어온다.
+                        // 이 경우에는 gatt disconnect를 시켜줘야 한다.
+                        if (status == 133) {
+                            connectedGatt?.disconnect()
+                        } else {
+                            isConnected.postValue(false)
+                            val response = mapOf(
+                                "type" to "disconnect",
+                                "data" to "success"
+                            )
+                            callEventSink(response)
+
+                            // 연결이 해제되면 바로 다시 스캔 시작
+                            scanStart(mainActivity, false)
+                        }
                     }
                 }
             }
@@ -220,6 +216,7 @@ object BleUtil : EventChannel.StreamHandler {
                         if (isConnected.value != true) {
                             for (characteristics in service.characteristics) {
                                 if (characteristics.uuid.toString() == chattingCharacteristicUuid) {
+
                                     gatt.setCharacteristicNotification(characteristics, true)
 
                                     val descriptor = characteristics?.getDescriptor(
@@ -239,6 +236,7 @@ object BleUtil : EventChannel.StreamHandler {
 
                                     connectedGatt = gatt
                                     connectedChar = characteristics
+
                                     isConnected.postValue(true)
 
                                     val response = mapOf(
@@ -246,13 +244,13 @@ object BleUtil : EventChannel.StreamHandler {
                                         "data" to connectedGatt?.device?.address
                                     )
 
+
                                     callEventSink(response)
                                     return
                                 }
                             }
                         } else {
                             gatt.disconnect()
-                            listener?.sendEvent("채팅이 이미 실행중입니다.")
                         }
                     }
                 }
@@ -263,9 +261,21 @@ object BleUtil : EventChannel.StreamHandler {
             gatt: BluetoothGatt?,
             characteristic: BluetoothGattCharacteristic?
         ) {
+            Log.d(
+                TAG,
+                "onCharacteristicChanged() called with: gatt = $gatt, characteristic = $characteristic"
+            )
             if (gatt != null && characteristic != null) {
                 onCharacteristicChanged(gatt, characteristic, characteristic.value)
             }
+        }
+
+        override fun onReadRemoteRssi(gatt: BluetoothGatt?, rssi: Int, status: Int) {
+            super.onReadRemoteRssi(gatt, rssi, status)
+            Log.d(
+                TAG,
+                "onReadRemoteRssi() called with: gatt = $gatt, rssi = $rssi, status = $status"
+            )
         }
 
         /**
@@ -281,6 +291,19 @@ object BleUtil : EventChannel.StreamHandler {
             val message = String(value, StandardCharsets.UTF_8)
             val response = mapOf("type" to "notification", "data" to message)
             callEventSink(response)
+            if (message == "disconnect") {
+                disconnectToDevice()
+            }
+        }
+
+        override fun onServiceChanged(gatt: BluetoothGatt) {
+            super.onServiceChanged(gatt)
+            Log.d(TAG, "onServiceChanged() called with: gatt = $gatt")
+            Log.d(TAG, "onServiceChanged readRemoteRssi : ${gatt.readRemoteRssi()}")
+            Log.d(TAG, "onServiceChanged services: ${gatt.services}")
+            Log.d(TAG, "onServiceChanged device: ${gatt.device}")
+            Log.d(TAG, "onServiceChanged readPhy: ${gatt.readPhy()}")
+            Log.d(TAG, "onServiceChanged connect: ${gatt.connect()}")
         }
     }
 
@@ -293,6 +316,7 @@ object BleUtil : EventChannel.StreamHandler {
 
     fun disconnectToDevice() {
         connectedGatt?.disconnect()
+        Log.d(TAG, "onCharacteristicChanged: disconnect 호출")
     }
 
     fun writeData(message: String) {

@@ -14,12 +14,12 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
-    <!--화면 깨우기-->
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
+<!--    &lt;!&ndash;화면 깨우기&ndash;&gt;-->
+<!--    <uses-permission android:name="android.permission.WAKE_LOCK" />-->
 
-    <!--포그라운드 서비스 권한-->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+<!--    &lt;!&ndash;포그라운드 서비스 권한&ndash;&gt;-->
+<!--    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />-->
+<!--    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />-->
 
     <application
         android:name="${applicationName}"

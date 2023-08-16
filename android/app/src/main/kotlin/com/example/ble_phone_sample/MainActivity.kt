@@ -60,9 +60,9 @@ class MainActivity : FlutterActivity() {
                     }
                 }
 
-                BLE_SCAN -> BleUtil.scanStart(this)
+                BLE_SCAN -> BleUtil.scanStart(this, true)
 
-                BLE_SCAN_STOP -> BleUtil.scanStop()
+                BLE_SCAN_STOP -> BleUtil.stopBleScan()
 
                 BLE_CONNECT -> {
 
