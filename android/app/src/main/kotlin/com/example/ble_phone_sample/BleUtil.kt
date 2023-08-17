@@ -67,11 +67,14 @@ object BleUtil : EventChannel.StreamHandler {
                         .build(),
                 )
 
-//                SCAN_MODE_LOW_POWER - 저전력 모드에서 Bluetooth LE 스캔을 수행합니다. 전력을 가장 적게 소모하는 기본 스캔 모드입니다. 스캐너는 0.5초 동안 스캔하고 4.5초 동안 정지합니다. Bluetooth LE 장치는 이 모드에서 발견되려면 매우 자주(최소 100ms당 한 번) 광고해야 합니다. 그렇지 않으면 검색 간격에서 일부 또는 모든 광고 이벤트를 놓칠 수 있습니다. 이 모드는 스캐닝 응용 프로그램이 전경에 있지 않은 경우에 시행될 수 있습니다.
-//                SCAN_MODE_BALANCED - 균형 잡힌 전원 모드에서 Bluetooth LE 스캔을 수행합니다. 스캔 결과는 스캔 주파수와 전력 소비 사이에 적절한 균형을 제공하는 속도로 반환됩니다. 스캐너는 2초 동안 스캔한 후 3초 동안 유휴 상태가 됩니다.
+//                SCAN_MODE_LOW_POWER - 저전력 모드에서 Bluetooth LE 스캔을 수행합니다.
+//                전력을 가장 적게 소모하는 기본 스캔 모드입니다. 스캐너는 0.5초 동안 스캔하고 4.5초 동안 정지합니다.
+//                Bluetooth LE 장치는 이 모드에서 발견되려면 매우 자주(최소 100ms당 한 번) 광고해야 합니다.
+//                그렇지 않으면 검색 간격에서 일부 또는 모든 광고 이벤트를 놓칠 수 있습니다. 이 모드는 스캐닝 응용 프로그램이 전경에 있지 않은 경우에 시행될 수 있습니다.
+//                SCAN_MODE_BALANCED - 균형 잡힌 전원 모드에서 Bluetooth LE 스캔을 수행합니다. 스캔 결과는 스캔 주파수와 전력 소비 사이에 적절한 균형을 제공하는 속도로 반환됩니다.
+//                스캐너는 2초 동안 스캔한 후 3초 동안 유휴 상태가 됩니다.
 //                SCAN_MODE_LOW_LATENCY - 가장 높은 듀티 사이클을 사용하여 스캔합니다. 애플리케이션이 포그라운드에서 실행 중일 때만 이 모드를 사용하는 것이 좋습니다.
 //                SCAN_MODE_OPPORTUNISTIC - 특별한 Bluetooth LE 스캔 모드입니다. 이 스캔 모드를 사용하는 애플리케이션은 BLE 스캔 자체를 시작하지 않고 수동적으로 다른 스캔 결과를 수신합니다.
-                // TODO:: 스캔 텀을 백그라운드일 때랑 최초랑 다르게 가야한다.
 //                val settings =
 //                    ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_POWER).build()
                 val settings = ScanSettings.Builder()
